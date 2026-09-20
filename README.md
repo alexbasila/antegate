@@ -44,10 +44,17 @@ In full:
 > AnteGate demonstrates an executable mechanism in which eligibility for a
 > shared AI domain depends on a signed condition established before a specific
 > model deployment. That condition is carried forward through evidence-based
-> admission into a cryptographic runtime credential recognized by independently
-> operated services and subject to domain-wide revocation. An already deployed
-> model cannot retroactively satisfy the historical condition even if it later
-> satisfies all ordinary admission evidence requirements.
+> admission into a cryptographic runtime credential recognized by separate
+> service gateways and subject to domain-wide revocation. Once a deployment has
+> entered the Authority's recorded history, the missing prospective condition
+> cannot be added retroactively, even if the model later satisfies every
+> ordinary admission evidence requirement.
+
+What is measured is the Authority's own recorded history, not the outside world:
+the run shows that a deployment already present in that history cannot acquire a
+prior condition afterwards. Binding that record to externally witnessed
+real-world deployment history would require external witnesses and is future
+work.
 
 Not claimed: a second internet, AI safety solved, alignment solved, anything
 proven about a model's training, anything proven about scale.
@@ -164,8 +171,11 @@ admitted at all.
 - the commitment exists before the deployment
 - ordering is carried by the Authority's hash-linked audit sequence, not by
   operator timestamps
-- the commitment is bound to model generation, to policy version and to mandate
-- the commitment is single-use
+- the commitment is bound to model generation, policy version, mandate and to
+  the operator key that appears in the identity evidence and signed the
+  deployment manifest
+- the commitment is single-use in the demonstrated sequential execution
+  (consumption is not yet atomic under concurrent admission requests)
 - a retrospective commitment fails
 - complete later evidence does not substitute for the missing commitment
 
@@ -177,7 +187,8 @@ bound.
 
 AnteGate rejects: modified commitment; commitment for another model generation;
 mandate expansion after commitment; retrospective commitment; reused commitment;
-wrong policy version; complete evidence without prior commitment; modified
+wrong policy version; complete evidence without prior commitment; a different
+operator key reusing another holder's commitment; modified
 identity evidence; wrong law hash; forged Authority probe; evidence belonging to
 another model; modified passport; tampered revocation state; replay of an older
 genuinely signed revocation state.

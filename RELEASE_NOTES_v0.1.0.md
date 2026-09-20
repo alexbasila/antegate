@@ -4,10 +4,10 @@ Date: 21 September 2026. Status: research prototype. License: MIT.
 
 ## Most important sentence
 
-> **The release demonstrates a control case in which an already deployed model
-> satisfies every ordinary admission evidence requirement yet remains ineligible
-> because the required pre-deployment condition did not exist before that
-> deployment.**
+> **The release demonstrates a control case in which a model whose deployment is
+> already recorded in the Authority's history satisfies every ordinary admission
+> evidence requirement yet remains ineligible, because the required
+> pre-deployment condition did not exist before that deployment was recorded.**
 
 ## Contents
 
@@ -33,6 +33,18 @@ Date: 21 September 2026. Status: research prototype. License: MIT.
 
 Each step was a separate commission with its own falsification list, and each run
 regenerates a dated report.
+
+## Fixed before first outreach
+
+- The operator key named in a commitment must now equal the key in the identity
+  evidence and the key that signed the deployment manifest. Previously only the
+  operator name was compared, so a second holder with the same name and a
+  different key could have built on another holder's commitment. New tampering
+  test 8: `OPERATOR_KEY_BINDING_MISMATCH`.
+- Claims narrowed to what is measured: the Authority's recorded deployment
+  history rather than real-world deployment, and separate service gateways rather
+  than independently operated organisations.
+- Single-use is stated as holding for the demonstrated sequential execution.
 
 ## Notes
 

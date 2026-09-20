@@ -16,7 +16,7 @@
 #                antegate/ANTEGATE_004R1_REPORT_<UTC>.md
 #
 # Claim of this run, exactly this and no larger:
-#   Independent organizations can enforce a shared AI admission and revocation
+#   Separate service gateways can enforce a shared AI admission and revocation
 #   regime without sharing application state or trusting each other's
 #   infrastructure. Trust is distributed through Authority-signed policy,
 #   credentials and revocation state.
@@ -956,7 +956,7 @@ def build_report(stamp: str, root: Path, report_path: Path, policy: Dict[str, An
 
 ## Claim of this run
 
-Independent organizations can enforce a shared AI admission and revocation
+Separate service gateways can enforce a shared AI admission and revocation
 regime without sharing application state or trusting each other's
 infrastructure. Trust is distributed through Authority-signed policy,
 credentials and revocation state.

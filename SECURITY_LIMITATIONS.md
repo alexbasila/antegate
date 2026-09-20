@@ -19,6 +19,21 @@ compromised or dishonest Authority controls this history.
 Future work: external witnesses, multiparty approval, a transparency system,
 external timestamping or checkpoints.
 
+## Single-use is sequential, not atomic
+
+A commitment is checked as OPEN, then consumed after the passport is issued.
+Those two steps are not wrapped in a lock or transaction, so two concurrent
+admission requests could in principle both observe OPEN. Single-use holds for the
+demonstrated sequential execution; making consumption atomic is future work.
+
+## Recorded history is not world history
+
+Ordering is established inside the Authority's own hash-linked audit sequence.
+The run shows that a deployment already recorded there cannot acquire a prior
+condition afterwards. It does not show that the model was deployed in the outside
+world at that time. Turning recorded history into externally witnessed history
+requires witnesses and is future work.
+
 ## Economic and domain premise
 
 AnteGate assumes that access to the governed domain has sufficient value for
@@ -106,6 +121,8 @@ this domain cannot be drawn from these runs.
 
 ## Scale
 
-One machine, one Authority, one relay, two companies. Nothing here demonstrates
+One machine, one Authority, one relay, two gateways in a single process. The
+gateways keep separate state, ports and key roles, but they are not two
+independently operated organisations. Nothing here demonstrates
 behaviour at scale, under concurrency, or across organisational boundaries in the
 real world.

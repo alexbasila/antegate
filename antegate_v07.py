@@ -17,9 +17,10 @@
 #
 # Claim of this run, exactly this and no larger:
 #   AnteGate can make eligibility for a shared AI domain depend on a signed
-#   commitment established before a specific model deployment. A model that
-#   already exists cannot retroactively satisfy that pre-deployment condition,
-#   even if it later presents otherwise valid admission evidence.
+#   commitment established before a specific model deployment. Once a deployment
+#   has entered the Authority's recorded history, the missing prospective
+#   condition cannot be added retroactively, even if the model later presents
+#   otherwise valid admission evidence.
 #
 # Explicitly NOT claimed: training control or attestation, weight attestation,
 #   alignment, real-world trustworthiness of the demo issuers, scale.
@@ -494,6 +495,7 @@ class PassportAuthority:
             first_seq = prev.get("first_registered_audit_seq", prev.get("registered_audit_seq"))
         record = {"manifest": manifest, "registered_audit_seq": entry["seq"],
                   "first_registered_audit_seq": first_seq,
+                  "operator_public_key_b64": base64.b64encode(operator_key).decode(),
                   "registered_at": utc_iso()}
         (self.deploy_dir / f"{body['model_id']}.json").write_text(
             json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -534,6 +536,15 @@ class PassportAuthority:
             return reject("PRECOMMITMENT_BINDING_MISMATCH")
         if body.get("operator") != (package.get("operator") or {}).get("name"):
             return reject("PRECOMMITMENT_BINDING_MISMATCH")
+        # The operator name is a string; the key is the identity. The key named in
+        # the commitment must be the key in the identity evidence and the key that
+        # signed the deployment manifest, otherwise a second holder with the same
+        # name could build on someone else's commitment.
+        pc_key = body.get("operator_public_key_b64")
+        ident = (package.get("evidence") or {}).get("operator_identity") or {}
+        id_key = (ident.get("body") or {}).get("operator_public_key_b64")
+        if not pc_key or id_key != pc_key:
+            return reject("OPERATOR_KEY_BINDING_MISMATCH")
         if body.get("mandate_hash") != sha256_hex(canonical(mandate)):
             return reject("MANDATE_COMMITMENT_MISMATCH")
         if time.time() > body.get("valid_until", 0):
@@ -548,6 +559,8 @@ class PassportAuthority:
         dep_body = record["manifest"]["body"]
         if dep_body.get("commitment_id") != cid:
             return reject("PRECOMMITMENT_BINDING_MISMATCH")
+        if record.get("operator_public_key_b64") != pc_key:
+            return reject("OPERATOR_KEY_BINDING_MISMATCH")
         # A model exists from its first registration onwards. A later
         # re-registration does not reset that clock.
         first_seq = record.get("first_registered_audit_seq", record.get("registered_audit_seq", 0))
@@ -1453,6 +1466,17 @@ def run_demo(root: Path, report_dir: Path) -> Path:
     res["T6"] = {"granted": d6["granted"], "c0": crit(d6, "C0")}
     say(f"  6 different policy version     -> {'GRANTED' if d6['granted'] else 'DENIED'}, {res['T6']['c0']}")
 
+    # 8 same operator name, different operator key
+    op_imp = Operator("Operator-Test", "AT", "test@example.org")   # same name, new key
+    ag8 = DemoAgent("ImpostorAI-v1.0", refuses=True)
+    pc8 = authority.request_precommitment(op_t, "ImpostorAI", "v1.0", MANDATE)
+    deploy(authority, ag8.model_id, "ImpostorAI", "v1.0", op_imp,
+           pc8["commitment"]["commitment_id"])
+    _, d8 = authority.issue_from_package(
+        build_package(ag8.model_id, op_imp, issuer, ph, precommitment=pc8), ag8)
+    res["T8"] = {"granted": d8["granted"], "c0": crit(d8, "C0")}
+    say(f"  8 same name, different key   -> {'GRANTED' if d8['granted'] else 'DENIED'}, {res['T8']['c0']}")
+
     # 7 complete evidence without a commitment (same as the LegacyAI case)
     res["T7"] = {"granted": res["legacy"]["granted"], "c0": res["legacy"]["c0"]}
     say(f"  7 valid evidence, no commitment -> "
@@ -1590,6 +1614,8 @@ def falsification(res: Dict[str, Any]) -> Tuple[bool, List[str]]:
         f.append("11/ audit ordering not reconstructable")
     if res["T6"]["granted"]:
         f.append("12/ a commitment from a different policy version was accepted")
+    if res["T8"]["granted"]:
+        f.append("13/ a different operator key reused another holder's commitment")
     return (not f), f
 
 
@@ -1674,6 +1700,7 @@ demonstrably not automatically an admitted model.
 | 5 | the same commitment used twice | {'GRANTED' if res['T5']['granted'] else 'DENIED'}, C0 {res['T5']['c0']} |
 | 6 | Commitment from a different policy version | {'GRANTED' if res['T6']['granted'] else 'DENIED'}, C0 {res['T6']['c0']} |
 | 7 | complete evidence without a commitment | {'GRANTED' if res['T7']['granted'] else 'DENIED'}, C0 {res['T7']['c0']} |
+| 8 | same operator name, different operator key | {'GRANTED' if res['T8']['granted'] else 'DENIED'}, C0 {res['T8']['c0']} |
 
 Test 3 separates cleanly: the mandate itself is correctly signed by the operator
 (C3 {res['T3']['c3'].split('/')[0]}), only the binding to the commitment no
@@ -1751,7 +1778,8 @@ accepted; 3 commitment of another generation usable; 4 consumable twice;
 5 mandate widenable afterwards; 6 tampered commitment accepted; 7 FutureAI is
 denied despite a valid chain; 8 evidence admission breaks; 9 revocation,
 rollback or TTL breaks; 10 a company issues by itself; 11 audit ordering not
-reconstructable; plus 12 policy version.
+reconstructable; 12 policy version; 13 a different operator key reuses another
+holder's commitment.
 Ergebnis: {"no point triggered" if passed else "; ".join(fails)}.
 
 ## Console output
