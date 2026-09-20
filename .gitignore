@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+
+*.key
+.env
+.env.*
+
+antegate/state*/
+antegate/*_REPORT_*.md
+antegate/*_SMOKE_*.md
+antegate/*_FREEZE_*.md
+
+secureai/
+*_ALT_*
+*_OLD_*
